@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Powered Bus Rerouting System | Plammoodu & Canal Map</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="h-full font-sans text-slate-100 flex flex-col antialiased selection:bg-sky-500 selection:text-white">
+
+    <!-- Top Header Bar -->
+    <header class="bg-slate-900/90 border-b border-slate-800 px-4 py-2.5 flex items-center justify-between backdrop-blur shrink-0 z-20">
+        <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-lg bg-gradient-to-tr from-sky-600 to-emerald-500 flex items-center justify-center shadow-lg shadow-sky-500/20">
+                <span class="text-xl">🚌</span>
+            </div>
+            <div>
+                <h1 class="text-base font-bold text-white leading-tight flex items-center space-x-2">
+                    <span>AI Bus Rerouting & Traffic Control Engine</span>
+                    <span class="px-2 py-0.5 text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full">Plammoodu / Canal Sector</span>
+                </h1>
+                <p class="text-xs text-slate-400">Dynamic A* Pathfinding • Real-Time Roadblock Avoidance • Fleet Simulation</p>
+            </div>
+        </div>
+
+        <!-- Metric Badges -->
+        <div class="flex items-center space-x-3">
+            <div class="px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60 flex items-center space-x-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span class="text-xs text-slate-400">Active Fleet:</span>
+                <span id="statActiveBuses" class="text-sm font-bold text-white font-mono">3</span>
+            </div>
+
+            <div class="px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60 flex items-center space-x-2">
+                <span class="w-2 h-2 rounded-full bg-red-400"></span>
+                <span class="text-xs text-slate-400">Roadblocks:</span>
+                <span id="statRoadblocks" class="text-sm font-bold text-red-400 font-mono">0</span>
+            </div>
+
+            <div class="px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60 flex items-center space-x-2">
+                <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                <span class="text-xs text-slate-400">AI Reroutes:</span>
+                <span id="statReroutes" class="text-sm font-bold text-amber-400 font-mono">0</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Toolbar Controls -->
+    <div class="bg-slate-900 border-b border-slate-800/80 px-4 py-2 flex flex-wrap items-center justify-between gap-2 shrink-0 z-10">
+        <!-- Interactive Modes -->
+        <div class="flex items-center space-x-2">
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider mr-1">Tool Mode:</span>
+            <button id="btnModeSelect" onclick="setMode('select')" class="px-3 py-1.5 rounded-lg text-xs font-medium border bg-sky-500/30 border-sky-500 text-sky-300 transition-all flex items-center space-x-1.5 shadow-sm">
+                <span>🔍</span>
+                <span>Select & Inspect</span>
+            </button>
+            <button id="btnModeBlock" onclick="setMode('roadblock')" class="px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-700 bg-slate-800 hover:bg-red-500/20 hover:border-red-500 text-slate-200 hover:text-red-300 transition-all flex items-center space-x-1.5">
+                <span>🚧</span>
+                <span>Place Manual Roadblock</span>
+            </button>
+        </div>
+
+        <!-- Simulation Actions -->
+        <div class="flex items-center space-x-2">
+            <button onclick="spawnBus()" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-600 hover:bg-emerald-500 text-white transition-all shadow-sm flex items-center space-x-1">
+                <span>+ 🚌 Add Bus</span>
+            </button>
+            <button onclick="spawnAmbulance()" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-rose-600 hover:bg-rose-500 text-white transition-all shadow-sm flex items-center space-x-1">
+                <span>+ 🚑 Add Emergency</span>
+            </button>
+            <button onclick="clearAllRoadblocks()" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition-all flex items-center space-x-1">
+                <span>🧹 Clear Roadblocks</span>
+            </button>
+        </div>
+
+        <!-- Playback & Speed Controls -->
+        <div class="flex items-center space-x-2 border-l border-slate-800 pl-3">
+            <button id="btnPause" onclick="togglePause()" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200">
+                ⏸ Pause
+            </button>
+            <div class="flex items-center space-x-1 bg-slate-800/80 p-0.5 rounded-lg border border-slate-700/60">
+                <button onclick="setSpeed(1.0)" class="px-2 py-1 rounded text-[11px] font-mono hover:bg-slate-700 text-slate-200">1x</button>
+                <button onclick="setSpeed(2.0)" class="px-2 py-1 rounded text-[11px] font-mono hover:bg-slate-700 text-slate-200">2x</button>
+                <button onclick="setSpeed(5.0)" class="px-2 py-1 rounded text-[11px] font-mono hover:bg-slate-700 text-slate-200">5x</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Workspace -->
+    <div class="flex-1 flex overflow-hidden">
+
+        <!-- Left Fleet Panel -->
+        <aside class="w-80 border-r border-slate-800/80 bg-slate-900/60 flex flex-col shrink-0">
+            <div class="px-3 py-2.5 bg-slate-900 border-b border-slate-800 flex items-center justify-between">
+                <h2 class="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center space-x-2">
+                    <span>Active Bus Fleet</span>
+                </h2>
+                <span class="text-[10px] text-slate-400 font-mono">Live Sync</span>
+            </div>
+
+            <!-- Fleet Table -->
+            <div class="flex-1 overflow-y-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-slate-950/80 text-[10px] text-slate-400 font-semibold uppercase tracking-wider sticky top-0 z-10 border-b border-slate-800">
+                        <tr>
+                            <th class="py-2 px-3">ID</th>
+                            <th class="py-2 px-3">Route</th>
+                            <th class="py-2 px-3">Next Stop</th>
+                            <th class="py-2 px-3">Status</th>
+                            <th class="py-2 px-3 text-right">Reroutes</th>
+                            <th class="py-2 px-3 text-right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fleetTableBody" class="divide-y divide-slate-800/40">
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Map View Layer Controls -->
+            <div class="p-3 border-t border-slate-800 bg-slate-900/90 space-y-2">
+                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Map Layer Overlays</div>
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <label class="flex items-center space-x-2 cursor-pointer bg-slate-800/60 p-1.5 rounded border border-slate-700/50">
+                        <input type="checkbox" checked onchange="simManager.showSatellite = this.checked" class="rounded bg-slate-900 border-slate-700 text-sky-500 focus:ring-0">
+                        <span class="text-slate-300 text-[11px]">Satellite Map</span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer bg-slate-800/60 p-1.5 rounded border border-slate-700/50">
+                        <input type="checkbox" checked onchange="simManager.showRoadOverlay = this.checked" class="rounded bg-slate-900 border-slate-700 text-sky-500 focus:ring-0">
+                        <span class="text-slate-300 text-[11px]">Road Overlay</span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer bg-slate-800/60 p-1.5 rounded border border-slate-700/50">
+                        <input type="checkbox" checked onchange="simManager.showBusRoutes = this.checked" class="rounded bg-slate-900 border-slate-700 text-sky-500 focus:ring-0">
+                        <span class="text-slate-300 text-[11px]">Bus Paths</span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer bg-slate-800/60 p-1.5 rounded border border-slate-700/50">
+                        <input type="checkbox" checked onchange="simManager.showNodeLabels = this.checked" class="rounded bg-slate-900 border-slate-700 text-sky-500 focus:ring-0">
+                        <span class="text-slate-300 text-[11px]">Stop Labels</span>
+                    </label>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Center Canvas Area -->
+        <main class="flex-1 bg-slate-950 relative overflow-hidden flex items-center justify-center p-2">
+            <div class="relative shadow-2xl rounded-xl border border-slate-800 overflow-hidden max-w-full max-h-full">
+                <canvas id="mapCanvas" width="1024" height="897" class="block max-w-full h-auto bg-slate-900"></canvas>
+
+                <!-- Map Canvas Legend Badge -->
+                <div class="absolute bottom-3 left-3 bg-slate-900/90 backdrop-blur border border-slate-800 p-2.5 rounded-lg text-xs space-y-1.5 shadow-lg">
+                    <div class="font-bold text-slate-200 text-[11px] border-b border-slate-800 pb-1">Map Legend</div>
+                    <div class="grid grid-cols-2 gap-x-3 gap-y-1 text-[10px]">
+                        <div class="flex items-center space-x-1.5">
+                            <span class="w-3 h-1 bg-slate-400 rounded"></span>
+                            <span class="text-slate-300">Normal Road</span>
+                        </div>
+                        <div class="flex items-center space-x-1.5">
+                            <span class="w-3 h-1 bg-red-500 rounded"></span>
+                            <span class="text-slate-300">Manual Roadblock</span>
+                        </div>
+                        <div class="flex items-center space-x-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-sky-400 border border-sky-600"></span>
+                            <span class="text-slate-300">Bus Stop / Hub</span>
+                        </div>
+                        <div class="flex items-center space-x-1.5">
+                            <span class="w-3 h-2 bg-emerald-500 rounded"></span>
+                            <span class="text-slate-300">Active Bus</span>
+                        </div>
+                        <div class="flex items-center space-x-1.5">
+                            <span class="w-2 h-2 bg-red-500 rounded"></span>
+                            <span class="text-slate-300">Ambulance (Siren)</span>
+                        </div>
+                        <div class="flex items-center space-x-1.5">
+                            <span class="w-2 h-2 bg-amber-500 rounded"></span>
+                            <span class="text-slate-300">Traffic / Cars</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Right Side Inspector & AI Reasoning Log -->
+        <aside class="w-80 border-l border-slate-800/80 bg-slate-900/60 flex flex-col shrink-0">
+            <!-- Inspector Card -->
+            <div class="p-3 border-b border-slate-800 bg-slate-900/80">
+                <h3 class="text-xs font-bold text-slate-200 uppercase tracking-wider mb-2 flex items-center justify-between">
+                    <span>Inspector & Target Info</span>
+                    <span class="text-[10px] text-sky-400">Live</span>
+                </h3>
+                <div id="inspectorContent">
+                    <div class="text-slate-500 text-xs text-center py-4">Click any bus, vehicle, or node on the map to inspect details.</div>
+                </div>
+            </div>
+
+            <!-- AI Pathfinding Log Feed -->
+            <div class="flex-1 flex flex-col overflow-hidden">
+                <div class="px-3 py-2 bg-slate-900 border-b border-slate-800 flex items-center justify-between">
+                    <h3 class="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center space-x-1.5">
+                        <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                        <span>AI Reasoning & Log Feed</span>
+                    </h3>
+                    <span class="text-[10px] text-slate-400 font-mono">A* Engine</span>
+                </div>
+                <div id="logFeed" class="flex-1 overflow-y-auto p-2.5 space-y-2">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+        </aside>
+
+    </div>
+
+    <!-- Scripts -->
+    <script src="map-data.js"></script>
+    <script src="pathfinding.js"></script>
+    <script src="simulation.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
